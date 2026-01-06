@@ -17,7 +17,8 @@ export const GameCanvas: React.FC = () => {
         currentBlind,
         handsRemaining,
         discardsRemaining,
-        actions
+        actions,
+        jokers
     } = useGameStore(state => ({
         hand: state.hand,
         selectedCardIds: state.selectedCardIds,
@@ -27,7 +28,8 @@ export const GameCanvas: React.FC = () => {
         currentBlind: state.currentBlind,
         handsRemaining: state.handsRemaining,
         discardsRemaining: state.discardsRemaining,
-        actions: state.actions
+        actions: state.actions,
+        jokers: state.jokers
     }));
 
     // Computed UI state
@@ -46,10 +48,6 @@ export const GameCanvas: React.FC = () => {
         const result = HandEvaluator.evaluate(selectedCards);
         return { chips: result.baseChips, mult: result.baseMult };
     }, [selectedCards]);
-
-    // useEffect for auto-init is removed because the store initializes itself to PLAYING_HAND and populated hand.
-    // If we want a separate 'Start Screen', we should handle it in App.tsx or use a 'MENU' runState.
-    // For now, removing this avoids potentially triggering updates on mount if store state is fluid.
 
     return (
         <div className="game-canvas">
@@ -76,7 +74,7 @@ export const GameCanvas: React.FC = () => {
 
                 {/* Jokers Placeholder */}
                 <div style={{ display: 'flex', gap: 10 }}>
-                    {useGameStore(state => state.jokers).map(joker => {
+                    {jokers.map(joker => {
                         const def = getJokerDef(joker.defId);
                         return (
                             <div key={joker.id} className="joker-card" title={def.description}>
@@ -87,7 +85,7 @@ export const GameCanvas: React.FC = () => {
                         );
                     })}
                     {/* Empty slots for visual consistency, assume max 5 */}
-                    {Array.from({ length: Math.max(0, 5 - useGameStore(state => state.jokers).length) }).map((_, i) => (
+                    {Array.from({ length: Math.max(0, 5 - jokers.length) }).map((_, i) => (
                         <div key={`empty-${i}`} className="joker-slot">JOKER SPLOT</div>
                     ))}
                 </div>
@@ -98,10 +96,6 @@ export const GameCanvas: React.FC = () => {
                 <div className="play-zone-label">
                     {currentHandType || "Select Cards"}
                 </div>
-                {/* 
-                   Here we could visualize the cards being played via animation.
-                   For now, the logic is instant.
-                */}
                 {currentHandType && (
                     <div style={{
                         position: 'absolute', bottom: 10,
