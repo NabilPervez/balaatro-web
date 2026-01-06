@@ -30,14 +30,8 @@ function runDemo() {
     // Joker: "Jolly Joker" (+8 Mult if pair? No, let's do a simple +4 Mult abstract joker)
     const mockJoker: Joker = {
         id: 'joker-1',
-        name: 'Basic Joker',
-        rarity: 'Common',
-        cost: 4,
-        edition: 'Base',
-        triggerType: 'independent',
-        calculateEffect: () => {
-            return { plusMult: 4 };
-        }
+        defId: 'j_joker',
+        edition: 'Base'
     };
 
     const gameState: GameState = {

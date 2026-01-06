@@ -6,6 +6,7 @@ export interface EffectOutput {
     plusMult?: number;
     xMult?: number;
     chips?: number;
+    money?: number;
 }
 
 // Forward declaration to avoid circular dependency if needed, 
@@ -26,6 +27,8 @@ export interface Card {
     isFaceUp: boolean;   // For "The House" boss blind logic
 }
 
+// --- Global State ---
+
 export interface GameState {
     runState: 'MENU' | 'SHOP' | 'BLIND_SELECT' | 'PLAYING_HAND' | 'GAME_OVER';
 
@@ -34,7 +37,7 @@ export interface GameState {
     discardPile: Card[];
     playArea: Card[];    // Cards selected to be played
 
-    jokers: Joker[];     // Max 5 (standard)
+    jokers: Joker[];     // Max 5 (standard) - these are INSTANCES
     consumables: Card[]; // Tarot/Planet/Spectral (Max 2)
 
     // Economy & Meta
@@ -46,29 +49,37 @@ export interface GameState {
     currentBlind: {
         targetScore: number;
         reward: number;
-        bossEffect?: string; // Simplification for now
+        bossEffect?: string;
     };
     handsRemaining: number;
     discardsRemaining: number;
 }
 
+
 export interface Context {
     type: 'score' | 'discard' | 'held' | 'independent';
     playedCards?: Card[];
     scoringHand?: Card[]; // The calculated best poker hand
+    pokerHand?: string;   // 'Flush', 'Pair', etc.
+}
+export interface Joker {
+    id: string;      // Instance ID (UUID)
+    defId: string;   // Lookup ID for behavior (e.g. 'j_joker')
+    edition: 'Base' | 'Foil' | 'Holographic' | 'Polychrome' | 'Negative';
+    plusChips?: number; // Dynamic stats tracked on instance (like Hiker)
+    plusMult?: number;
 }
 
-export interface Joker {
-    id: string;
+export interface JokerDefinition {
+    defId: string;
     name: string;
     rarity: 'Common' | 'Uncommon' | 'Rare' | 'Legendary';
     cost: number;
-    edition: 'Base' | 'Foil' | 'Holographic' | 'Polychrome' | 'Negative';
-
-    // The logic hook
+    description: string;
     triggerType: 'on_score' | 'on_discard' | 'on_held' | 'independent' | 'passive';
-    calculateEffect: (gameState: GameState, context: Context) => EffectOutput;
+    calculateEffect: (gameState: GameState, context: Context, joker: Joker) => EffectOutput;
 }
+
 
 export interface HandResult {
     handType: string;         // 'Five of a Kind', 'Straight Flush', etc.

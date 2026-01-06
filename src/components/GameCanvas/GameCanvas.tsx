@@ -3,6 +3,7 @@ import React, { useEffect, useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { Card } from '../Card/Card';
 import { HandEvaluator } from '../../logic/HandEvaluator';
+import { getJokerDef } from '../../data/jokers';
 import './GameCanvas.css';
 
 export const GameCanvas: React.FC = () => {
@@ -79,16 +80,19 @@ export const GameCanvas: React.FC = () => {
 
                 {/* Jokers Placeholder */}
                 <div style={{ display: 'flex', gap: 10 }}>
-                    {[1, 2, 3, 4, 5].map(i => (
-                        <div key={i} style={{
-                            width: 60, height: 80,
-                            border: '2px dashed rgba(255,255,255,0.2)',
-                            borderRadius: 8,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.8rem', color: '#666'
-                        }}>
-                            JOKER
-                        </div>
+                    {useGameStore(state => state.jokers).map(joker => {
+                        const def = getJokerDef(joker.defId);
+                        return (
+                            <div key={joker.id} className="joker-card" title={def.description}>
+                                <div style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>{def.name}</div>
+                                <div style={{ fontSize: '0.6rem', color: '#888' }}>{def.rarity}</div>
+                                {joker.edition !== 'Base' && <div style={{ color: 'gold', fontSize: '0.6rem' }}>{joker.edition}</div>}
+                            </div>
+                        );
+                    })}
+                    {/* Empty slots for visual consistency, assume max 5 */}
+                    {Array.from({ length: Math.max(0, 5 - useGameStore(state => state.jokers).length) }).map((_, i) => (
+                        <div key={`empty-${i}`} className="joker-slot">JOKER SPLOT</div>
                     ))}
                 </div>
             </div>

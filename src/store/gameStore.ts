@@ -1,15 +1,21 @@
 
 import { create } from 'zustand';
-import type { GameState } from '../logic/types';
+import type { GameState, Joker } from '../logic/types';
+import { getJokerDef } from '../data/jokers';
 import { DeckFactory } from '../logic/DeckFactory';
 import { HandEvaluator } from '../logic/HandEvaluator';
 import { ScoringManager } from '../logic/ScoringManager';
+import { ShopGenerator } from '../logic/ShopGenerator';
+import { BlindScaler } from '../logic/BlindScaler';
 
 interface GameActions {
     initRun: () => void;
     toggleCardSelection: (cardId: string) => void;
     playHand: () => void;
     discardHand: () => void;
+    buyJoker: (jokerId: string) => void;
+    nextRound: () => void;
+    skipShop: () => void;
 }
 
 const MAX_HAND_SIZE = 8; // Standard Balatro hand size
@@ -38,7 +44,11 @@ const createInitialState = (): GameState => {
         // But Card is in `hand` array.
         // Zustand store can keep track of `selectedCardIds`.
 
-        jokers: [],
+        jokers: [{
+            id: 'init-joker',
+            defId: 'j_joker',
+            edition: 'Base'
+        }],
         consumables: [],
         money: 4,
         ante: 1,
@@ -58,15 +68,19 @@ const createInitialState = (): GameState => {
 interface StoreState extends GameState {
     selectedCardIds: string[];
     actions: GameActions;
+    shopJokers: Joker[];
+    currentScore: number;
 }
 
 export const useGameStore = create<StoreState>((set, get) => ({
     ...createInitialState(),
     selectedCardIds: [],
+    shopJokers: [],
+    currentScore: 0,
 
     actions: {
         initRun: () => {
-            set({ ...createInitialState(), selectedCardIds: [] });
+            set({ ...createInitialState(), selectedCardIds: [], currentScore: 0, shopJokers: [] });
         },
 
         toggleCardSelection: (cardId: string) => {
@@ -81,7 +95,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
         },
 
         playHand: () => {
-            const { hand, selectedCardIds, handsRemaining } = get();
+            const { hand, selectedCardIds, handsRemaining, currentBlind } = get();
 
             if (selectedCardIds.length === 0) return; // Cannot play empty currently
             if (handsRemaining <= 0) return;
@@ -118,12 +132,95 @@ export const useGameStore = create<StoreState>((set, get) => ({
             // I'll add it here implicitly or update types later.
             // For MVP: log it.
 
+            // 3. Logic
+            const newScore = get().currentScore + score;
+            const target = currentBlind.targetScore;
+
+            // Check Win
+            if (newScore >= target) {
+                // WIN ROUND
+                const reward = currentBlind.reward; // + hands remaining bonus?
+                const shopItems = ShopGenerator.generateShop(get().ante);
+
+                set({
+                    currentScore: newScore,
+                    money: get().money + reward,
+                    runState: 'SHOP',
+                    shopJokers: shopItems,
+                    hand: [], // Clear hand visually or keep? Usually clear.
+                    selectedCardIds: []
+                });
+                return;
+            }
+
+            if (handsRemaining - 1 <= 0) {
+                // Game Over
+                set({ runState: 'GAME_OVER', currentScore: newScore, handsRemaining: 0 });
+                return;
+            }
+
+            // Normal Play Continue
             set({
                 hand: newHand,
                 deck: deck,
                 discardPile: discardPile,
                 selectedCardIds: [],
-                handsRemaining: handsRemaining - 1
+                handsRemaining: handsRemaining - 1,
+                currentScore: newScore
+            });
+        },
+
+        buyJoker: (jokerId: string) => {
+            const { shopJokers, money, jokers } = get();
+            const item = shopJokers.find(j => j.id === jokerId);
+            if (!item) return;
+
+            const def = getJokerDef(item.defId);
+            if (money >= def.cost) {
+                if (jokers.length < 5) {
+                    set({
+                        money: money - def.cost,
+                        jokers: [...jokers, item],
+                        shopJokers: shopJokers.filter(j => j.id !== jokerId)
+                    });
+                }
+            }
+        },
+
+        skipShop: () => {
+            get().actions.nextRound();
+        },
+
+        nextRound: () => {
+            const { ante, round } = get();
+            let nextRound = round + 1;
+            let nextAnte = ante;
+            if (nextRound > 3) {
+                nextRound = 1;
+                nextAnte++;
+            }
+
+            // Refill
+            const deck = DeckFactory.createDeck();
+            const shuffled = DeckFactory.shuffle(deck);
+            const hand = shuffled.slice(0, 8);
+            const remaining = shuffled.slice(8);
+
+            set({
+                runState: 'PLAYING_HAND',
+                ante: nextAnte,
+                round: nextRound,
+                currentBlind: {
+                    targetScore: BlindScaler.getBlindTarget(nextAnte, nextRound),
+                    reward: 3 + nextAnte
+                },
+                currentScore: 0,
+                handsRemaining: 4,
+                discardsRemaining: 3,
+                deck: remaining,
+                hand: hand,
+                discardPile: [],
+                shopJokers: []
             });
         },
 
