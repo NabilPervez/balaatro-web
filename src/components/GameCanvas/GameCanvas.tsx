@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { Card } from '../Card/Card';
 import { HandEvaluator } from '../../logic/HandEvaluator';
@@ -47,13 +47,9 @@ export const GameCanvas: React.FC = () => {
         return { chips: result.baseChips, mult: result.baseMult };
     }, [selectedCards]);
 
-    useEffect(() => {
-        // Init game on mount if empty?
-        // actions.initRun(); 
-        // We'll let user click Start or auto-init via separate StartScreen later.
-        // For now, auto-init to test.
-        if (hand.length === 0) actions.initRun();
-    }, []);
+    // useEffect for auto-init is removed because the store initializes itself to PLAYING_HAND and populated hand.
+    // If we want a separate 'Start Screen', we should handle it in App.tsx or use a 'MENU' runState.
+    // For now, removing this avoids potentially triggering updates on mount if store state is fluid.
 
     return (
         <div className="game-canvas">

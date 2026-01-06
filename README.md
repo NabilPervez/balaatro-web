@@ -72,3 +72,4 @@ export default defineConfig([
 ])
 ```
 # balaatro-web
+# balaatro-web
