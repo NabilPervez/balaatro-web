@@ -8,29 +8,17 @@ import './GameCanvas.css';
 
 export const GameCanvas: React.FC = () => {
     // Connect to store
-    const {
-        hand,
-        selectedCardIds,
-        money,
-        ante,
-        round,
-        currentBlind,
-        handsRemaining,
-        discardsRemaining,
-        actions,
-        jokers
-    } = useGameStore(state => ({
-        hand: state.hand,
-        selectedCardIds: state.selectedCardIds,
-        money: state.money,
-        ante: state.ante,
-        round: state.round,
-        currentBlind: state.currentBlind,
-        handsRemaining: state.handsRemaining,
-        discardsRemaining: state.discardsRemaining,
-        actions: state.actions,
-        jokers: state.jokers
-    }));
+    // Connect to store using atomic selectors to improve performance and stability
+    const hand = useGameStore(state => state.hand);
+    const selectedCardIds = useGameStore(state => state.selectedCardIds);
+    const money = useGameStore(state => state.money);
+    const ante = useGameStore(state => state.ante);
+    const round = useGameStore(state => state.round);
+    const currentBlind = useGameStore(state => state.currentBlind);
+    const handsRemaining = useGameStore(state => state.handsRemaining);
+    const discardsRemaining = useGameStore(state => state.discardsRemaining);
+    const actions = useGameStore(state => state.actions);
+    const jokers = useGameStore(state => state.jokers);
 
     // Computed UI state
     const selectedCards = useMemo(() => {
